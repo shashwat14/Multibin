@@ -7,6 +7,7 @@ import cv2
 import math
 from tqdm import tqdm
 from random import shuffle
+
 def gen_pickle():
     files = os.listdir(train_labels_path)
     dataset = {}
@@ -51,9 +52,6 @@ def gen_reference_data():
     print len(X)
     with open(path + 'kitti_xref_data.pkl', 'wb') as f:
         pickle.dump((X,label), f, -1)
-
-train_counter = 0
-total_samples = 11017
 
 class Dataset():
 
@@ -134,44 +132,3 @@ class Dataset():
         img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
         img = img.astype(np.float32)
         return img
-
-
-def get_data(batch_size):
-    global train_counter
-    lm,wm,hm = getDimsMean()
-    file,labels = load_xref_labels()
-    X = []
-    xlabels = []
-    dims = []
-    sins = []
-    coss = []
-    for i in tqdm(range(batch_size)):
-        filepath, boxes = file[train_counter%total_samples]
-        img = cv2.imread(filepath)
-        #img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-        cropped_img = img[boxes[1]:boxes[3], boxes[0]:boxes[2],:]
-        cropped_img = cv2.resize(cropped_img, (224,224))
-        
-        theta, dimens = labels[train_counter%total_samples]
-        
-        theta_l = 180. - theta
-        l,w,h = dimens
-        dim = np.array([lm - l, wm-w, hm-h])
-        cos = math.cos(theta_l*3.14/180.)
-        sin = math.sin(theta_l*3.14/180.)
-        try:
-            dims.append(dim)
-            coss.append(cos)
-            sins.append(sin)
-            X.append(cropped_img)
-            train_counter+=1
-            cv2.imwrite('/media/vision/New Volume/BoundingBox/images/' + str(train_counter) + '.png', cropped_img )
-            xlabels.append('/media/vision/New Volume/BoundingBox/images/' + str(train_counter) + '.png')
-        except:
-            continue
-    X = np.array(X)
-    dims = np.array(dims)
-    coss = np.array(coss)
-    sins = np.array(sins)
-    #train_counter = 0
-    return X,dims, coss.reshape(batch_size,1), sins.reshape(batch_size,1)
